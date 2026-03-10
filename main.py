@@ -4608,7 +4608,9 @@ async def _main(transport: str = "stdio", host: str = "127.0.0.1", port: int = 8
             file=sys.stderr,
         )
         if transport == "sse":
-            await mcp.run_sse_async(host=host, port=port)
+            mcp.settings.host = host
+            mcp.settings.port = port
+            await mcp.run_sse_async()
         else:
             await mcp.run_stdio_async()
     except Exception as e:
