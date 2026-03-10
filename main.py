@@ -637,20 +637,9 @@ async def _resolve_writable_file_path(
     return candidate, None
 
 
-def _configure_allowed_roots_from_cli(argv: Optional[List[str]] = None) -> None:
-    parser = argparse.ArgumentParser(
-        prog="telegram-mcp",
-        add_help=False,
-        description=(
-            "Optional positional arguments define server-side allowed roots "
-            "for file-path tools."
-        ),
-    )
-    parser.add_argument("allowed_roots", nargs="*")
-    parsed, _unknown = parser.parse_known_args(argv or [])
-
+def _configure_allowed_roots_from_cli(raw_roots: Optional[List[str]] = None) -> None:
     resolved_roots: List[Path] = []
-    for raw_root in parsed.allowed_roots:
+    for raw_root in (raw_roots or []):
         root = Path(raw_root).expanduser()
         if not root.exists():
             raise SystemExit(f"Allowed root does not exist: {root}")
@@ -4608,15 +4597,20 @@ async def reorder_folders(folder_ids: List[int]) -> str:
         )
 
 
-async def _main() -> None:
+async def _main(transport: str = "stdio", host: str = "127.0.0.1", port: int = 8000) -> None:
     try:
         # Start the Telethon client non-interactively
         print("Starting Telegram client...", file=sys.stderr)
         await client.start()
 
-        print("Telegram client started. Running MCP server...", file=sys.stderr)
-        # Use the asynchronous entrypoint instead of mcp.run()
-        await mcp.run_stdio_async()
+        print(
+            f"Telegram client started. Running MCP server (transport={transport})...",
+            file=sys.stderr,
+        )
+        if transport == "sse":
+            await mcp.run_sse_async(host=host, port=port)
+        else:
+            await mcp.run_stdio_async()
     except Exception as e:
         print(f"Error starting client: {e}", file=sys.stderr)
         if isinstance(e, sqlite3.OperationalError) and "database is locked" in str(e):
@@ -4628,9 +4622,16 @@ async def _main() -> None:
 
 
 def main() -> None:
-    _configure_allowed_roots_from_cli(sys.argv[1:])
+    parser = argparse.ArgumentParser(prog="telegram-mcp")
+    parser.add_argument("allowed_roots", nargs="*")
+    parser.add_argument("--transport", choices=["stdio", "sse"], default="stdio")
+    parser.add_argument("--host", default="127.0.0.1")
+    parser.add_argument("--port", type=int, default=8000)
+    args = parser.parse_args()
+
+    _configure_allowed_roots_from_cli(args.allowed_roots)
     nest_asyncio.apply()
-    asyncio.run(_main())
+    asyncio.run(_main(transport=args.transport, host=args.host, port=args.port))
 
 
 if __name__ == "__main__":
