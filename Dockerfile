@@ -1,47 +1,35 @@
-# Use an official Python runtime as a parent image (Alpine-based for minimal vulnerabilities)
-FROM python:3.13-alpine
+FROM python:3.11.9-slim AS builder
 
-# Set the working directory in the container
+# Install build dependencies and curl for uv installer
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv
+RUN curl -fsSL https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:${PATH}"
+
 WORKDIR /app
 
-# Prevent Python from writing pyc files to disc
-ENV PYTHONDONTWRITEBYTECODE=1
-# Ensure Python output is sent straight to terminal (useful for logs)
-ENV PYTHONUNBUFFERED=1
+# Copy project files
+COPY . .
 
-# Install system dependencies if needed (e.g., for certain Python packages)
-# RUN apt-get update && apt-get install -y --no-install-recommends some-package && rm -rf /var/lib/apt/lists/*
+# Install project dependencies into a local venv
+RUN uv sync --no-dev
 
-# Copy dependency definition files
-# If using Poetry:
-# COPY pyproject.toml poetry.lock* ./
-# RUN pip install --no-cache-dir poetry
-# RUN poetry config virtualenvs.create false && poetry install --no-dev --no-interaction --no-ansi
-# If using pip with requirements.txt:
-COPY requirements.txt ./
-RUN pip install --no-cache-dir --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
+FROM python:3.11.9-slim
 
-# Copy the rest of the application code
-COPY main.py .
-# COPY session_string_generator.py . # Optional: if needed within the container, otherwise can be run outside
+WORKDIR /app
+ENV PATH="/app/.venv/bin:${PATH}"
 
-# Create a non-root user and switch to it
-RUN adduser --disabled-password --gecos "" appuser && chown -R appuser:appuser /app
-USER appuser
+# Copy venv and app from builder
+COPY --from=builder /app/.venv /app/.venv
+COPY --from=builder /app/main.py /app/main.py
+COPY --from=builder /app/session_string_generator.py /app/session_string_generator.py
 
-# Define environment variables needed by the application
-# These should be provided at runtime, not hardcoded (especially secrets)
-ENV TELEGRAM_API_ID=""
-ENV TELEGRAM_API_HASH=""
-# Specify one of the following at runtime:
-# Default session filename
-ENV TELEGRAM_SESSION_NAME="telegram_mcp_session"
-# Or provide the session string directly
-ENV TELEGRAM_SESSION_STRING=""
+# Fix venv python symlink (builder's uv python path doesn't exist in final stage)
+RUN ln -sf /usr/local/bin/python3 /app/.venv/bin/python
 
-# Expose any ports if the application were a web server (not needed for stdio MCP)
-# EXPOSE 8000
+EXPOSE 8000
 
-# Define the command to run the application
-CMD ["python", "main.py"] 
+CMD ["python", "main.py", "--host", "0.0.0.0", "--port", "8000", "--transport", "sse"]
