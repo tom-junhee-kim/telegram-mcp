@@ -17,6 +17,7 @@ from urllib.parse import unquote, urlparse
 import nest_asyncio
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP, Context
+from mcp.server.transport_security import TransportSecuritySettings
 from mcp.types import ToolAnnotations
 from mcp.shared.exceptions import McpError
 from pythonjsonlogger import jsonlogger
@@ -4610,6 +4611,24 @@ async def _main(transport: str = "stdio", host: str = "127.0.0.1", port: int = 8
         if transport == "sse":
             mcp.settings.host = host
             mcp.settings.port = port
+
+            # Configure DNS rebinding protection from env vars
+            allowed_hosts_env = os.getenv("MCP_ALLOWED_HOSTS", "")
+            allowed_origins_env = os.getenv("MCP_ALLOWED_ORIGINS", "")
+            if allowed_hosts_env or allowed_origins_env:
+                allowed_hosts = [h.strip() for h in allowed_hosts_env.split(",") if h.strip()]
+                allowed_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
+                mcp.settings.transport_security = TransportSecuritySettings(
+                    enable_dns_rebinding_protection=True,
+                    allowed_hosts=allowed_hosts,
+                    allowed_origins=allowed_origins,
+                )
+            else:
+                # No explicit config: disable protection (behind reverse proxy)
+                mcp.settings.transport_security = TransportSecuritySettings(
+                    enable_dns_rebinding_protection=False,
+                )
+
             await mcp.run_sse_async()
         else:
             await mcp.run_stdio_async()
