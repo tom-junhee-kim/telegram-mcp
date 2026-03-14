@@ -97,6 +97,11 @@ ssh DM300S3B-B33-jhcheong "docker stop telegram-mcp-1 && docker rm telegram-mcp-
 ssh DM300S3B-B33-jhcheong "docker stop telegram-mcp-2 && docker rm telegram-mcp-2 && bash ~/telegram-mcp/run-2.sh"
 ```
 
+## 버전 관리
+
+- Public fork 저장소 — 태그/릴리즈는 upstream(chigwell/telegram-mcp)에서 관리
+- codescent 브랜치의 독립 릴리즈 생성 금지
+
 ## 배포
 
 ```bash
