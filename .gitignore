@@ -1,3 +1,7 @@
+# 환경 변수 (비밀 정보 — 커밋 금지)
+.env*
+!.env.example
+
 # Python
 .venv/
 __pycache__/
@@ -5,27 +9,21 @@ __pycache__/
 *.pyo
 *.pyd
 *.egg-info/
-
-# Runtime
-logs/*
-!logs/.gitkeep
-
-# OS
-.DS_Store
-
-# 환경 변수 파일 (커밋 금지)
-.env*
-!.env.example
-
-# Lock files
 uv.lock
 poetry.lock
 
-# Telegram session files
+# Telegram 세션 (런타임 생성)
 *.session
 *.session-journal
 
-# Test/temporary
+# 로그 (런타임 생성, 서버에만 존재)
+logs/*
+!logs/.gitkeep
+
+# 임시 파일
 *.tmp
 *.log
 mcp_errors.log
+
+# OS
+.DS_Store
