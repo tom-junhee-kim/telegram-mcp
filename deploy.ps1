@@ -1,58 +1,98 @@
-# Windows용 배포 스크립트 (scp 기반, rsync 없는 환경)
-# - .env.production → 서버의 .env로 복사
-# - 로컬 telegram-mcp/ 파일을 서버로 업로드 후 이미지 빌드 & 컨테이너 재시작
+# telegram-mcp 배포 (Windows → Linux)
+# - deploy.sh와 동일한 결과 보장 (rsync --delete 대체)
 # - 사용법: .\deploy.ps1
 $ErrorActionPreference = "Stop"
-
-$Host_ = "orangepi5plus-jhcheong"
-$RemoteDir = "~/telegram-mcp"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-# 배포 대상 파일 목록
-$Files = @("Dockerfile", ".dockerignore", "build.sh", "run.sh", "pyproject.toml", ".python-version", "main.py", "session_string_generator.py")
+Set-Location $ScriptDir
 
-# 컨테이너 정리
-Write-Host "==> Stopping current container"
-ssh $Host_ "docker stop telegram-mcp 2>/dev/null; docker rm telegram-mcp 2>/dev/null; true"
+$Host_ = "DM300S3B-B33-jhcheong"
+$RemoteDir = "~/telegram-mcp"
 
-# 파일 업로드
-Write-Host "==> Uploading files to ${Host_}:${RemoteDir}"
-ssh $Host_ "mkdir -p $RemoteDir"
-foreach ($f in $Files) {
-    $local = Join-Path $ScriptDir $f
-    if (Test-Path $local) {
-        scp $local "${Host_}:${RemoteDir}/$f"
-        Write-Host "  $f"
-    }
+# .env.production.1, .env.production.2 확인
+if (-not (Test-Path ".env.production.1")) {
+    Write-Error ".env.production.1 파일이 없습니다. .env.example을 참고하여 생성하세요."
+    exit 1
 }
-
-# .env.production → 서버의 .env로 복사
-Write-Host "==> Deploying .env.production as .env"
-$envProd = Join-Path $ScriptDir ".env.production"
-if (Test-Path $envProd) {
-    scp $envProd "${Host_}:${RemoteDir}/.env"
-} else {
-    Write-Error ".env.production not found. Create it from .env.example first."
+if (-not (Test-Path ".env.production.2")) {
+    Write-Error ".env.production.2 파일이 없습니다. .env.example을 참고하여 생성하세요."
     exit 1
 }
 
-# Windows에서 scp한 파일은 CRLF 줄바꿈 → LF로 변환 (scp는 git이 아니므로 .gitattributes 미적용)
-Write-Host "==> Converting CRLF to LF on remote"
-ssh $Host_ "cd $RemoteDir && find . -name '*.sh' -o -name '*.py' -o -name 'Dockerfile' -o -name '.dockerignore' -o -name '.env' | xargs -r sed -i 's/\r$//'"
+# 컨테이너 정리
+Write-Host "==> Stopping current containers"
+ssh $Host_ "docker stop telegram-mcp-1 telegram-mcp-2 2>/dev/null; docker rm telegram-mcp-1 telegram-mcp-2 2>/dev/null; true"
 
-# 배포 대상 외 잔여 파일 정리 — 보존: .env, Dockerfile, .dockerignore, *.sh, *.py, pyproject.toml, .python-version, logs
+# --- 파일 동기화 (deploy.sh rsync --delete 대체) ---
+# 제외 대상 (deploy.sh --exclude와 동일)
+$ExcludeNames = @('deploy.sh', 'deploy.ps1', '.gitignore', '.gitattributes', 'README.md', 'LICENSE', 'docker-compose.yml', 'poetry.lock', 'uv.lock', '__init__.py', 'claude_desktop_config.json', 'requirements.txt', 'mcp_errors.log')
+$ExcludePatterns = @('.env*', '.git*', '*.session', '*.session-journal', '*.log', '*.tmp', 'test_*.py')
+$ExcludeDirs = @('.git', '.github', '.venv', '__pycache__', 'logs', 'logs-1', 'logs-2', 'screenshots', 'screenshots-1', 'screenshots-2', 'telegram_mcp.egg-info', 'tests')
+
+# 임시 디렉토리에 배포 대상만 복사
+$TempDir = Join-Path $env:TEMP "deploy-telegram-mcp"
+if (Test-Path $TempDir) { Remove-Item -Recurse -Force $TempDir }
+New-Item -ItemType Directory -Path $TempDir | Out-Null
+
+Get-ChildItem -Path $ScriptDir -Force | Where-Object {
+    $n = $_.Name
+    if ($ExcludeNames -contains $n) { return $false }
+    if ($_.PSIsContainer -and ($ExcludeDirs -contains $n)) { return $false }
+    foreach ($p in $ExcludePatterns) { if ($n -like $p) { return $false } }
+    return $true
+} | ForEach-Object {
+    if ($_.PSIsContainer) {
+        Copy-Item $_.FullName (Join-Path $TempDir $_.Name) -Recurse
+    } else {
+        Copy-Item $_.FullName $TempDir
+    }
+}
+
+# 업로드
+Write-Host "==> Uploading files to ${Host_}:${RemoteDir}"
+ssh $Host_ "mkdir -p $RemoteDir"
+
+foreach ($item in @(Get-ChildItem $TempDir -Force)) {
+    if ($item.PSIsContainer) {
+        ssh $Host_ "rm -rf $RemoteDir/$($item.Name)"
+        scp -r $item.FullName "${Host_}:${RemoteDir}/"
+    } else {
+        scp $item.FullName "${Host_}:${RemoteDir}/"
+    }
+    Write-Host "  $($item.Name)"
+}
+
+# 원격 정리 (업로드되지 않은 파일/디렉토리 제거)
 Write-Host "==> Cleaning up old files on remote"
-ssh $Host_ "cd $RemoteDir && ls -A | grep -v -E '^(\.env|Dockerfile|\.dockerignore|build\.sh|run\.sh|main\.py|session_string_generator\.py|pyproject\.toml|\.python-version|logs)$' | xargs -r rm -rf"
+$UploadedNames = @(Get-ChildItem $TempDir -Force | ForEach-Object { [regex]::Escape($_.Name) })
+$PreserveRegex = '^(' + ($UploadedNames -join '|') + '|\.env.*|logs-1|logs-2|screenshots-1|screenshots-2)$'
+ssh $Host_ "cd $RemoteDir && ls -A | grep -v -E '$PreserveRegex' | xargs -r rm -rf"
+
+Remove-Item -Recurse -Force $TempDir
+
+# CRLF→LF 변환
+Write-Host "==> Converting CRLF to LF on remote"
+ssh $Host_ "cd $RemoteDir && find . -type f \( -name '*.sh' -o -name '*.py' -o -name '*.conf' -o -name '*.yaml' -o -name 'Dockerfile' -o -name '.dockerignore' \) -exec sed -i 's/\r$//' {} +"
+
+# .env.production.1 → .env.1
+Write-Host "==> Deploying .env.production.1 as .env.1"
+scp ".env.production.1" "${Host_}:${RemoteDir}/.env.1"
+ssh $Host_ "sed -i 's/\r$//' $RemoteDir/.env.1"
+
+# .env.production.2 → .env.2
+Write-Host "==> Deploying .env.production.2 as .env.2"
+scp ".env.production.2" "${Host_}:${RemoteDir}/.env.2"
+ssh $Host_ "sed -i 's/\r$//' $RemoteDir/.env.2"
 
 # 이미지 빌드
 Write-Host "==> Building Docker image on remote"
 ssh $Host_ "cd $RemoteDir && bash build.sh"
 
 # 컨테이너 시작
-Write-Host "==> Starting telegram-mcp container"
+Write-Host "==> Starting telegram-mcp containers"
 ssh $Host_ "bash $RemoteDir/run.sh"
 
 # 기동 확인
 Write-Host "==> Waiting for startup..."
 Start-Sleep -Seconds 5
-ssh $Host_ "docker ps --filter name=telegram-mcp --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
+ssh $Host_ "docker ps --filter name=telegram-mcp --format 'table {{.Names}}`t{{.Status}}`t{{.Ports}}'"
 Write-Host "Done."
