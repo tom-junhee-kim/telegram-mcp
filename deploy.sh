@@ -51,8 +51,10 @@ rsync -av --delete \
 # .env.production.{1,2} → 서버의 .env.{1,2}로 복사
 echo "==> Deploying .env.production.1 as .env.1"
 scp "$SCRIPT_DIR/.env.production.1" "$HOST:$REMOTE_DIR/.env.1"
+ssh "$HOST" "chmod 600 $REMOTE_DIR/.env.1"
 echo "==> Deploying .env.production.2 as .env.2"
 scp "$SCRIPT_DIR/.env.production.2" "$HOST:$REMOTE_DIR/.env.2"
+ssh "$HOST" "chmod 600 $REMOTE_DIR/.env.2"
 
 # 이미지 빌드
 echo "==> Building Docker image on remote"

@@ -71,17 +71,19 @@ Remove-Item -Recurse -Force $TempDir
 
 # CRLF→LF 변환
 Write-Host "==> Converting CRLF to LF on remote"
-ssh $Host_ "cd $RemoteDir && find . -type f \( -name '*.sh' -o -name '*.py' -o -name '*.conf' -o -name '*.yaml' -o -name 'Dockerfile' -o -name '.dockerignore' \) -exec sed -i 's/\r$//' {} +"
+ssh $Host_ "cd $RemoteDir && find . -type f \( -name '*.sh' -o -name '*.py' -o -name '*.conf' -o -name '*.cnf' -o -name '*.cf' -o -name '*.yaml' -o -name '*.yml' -o -name '*.toml' -o -name '*.json' -o -name '*.ini' -o -name '*.sql' -o -name '*.pem' -o -name 'Dockerfile' -o -name '.dockerignore' \) -exec sed -i 's/\r$//' {} +"
 
 # .env.production.1 → .env.1
 Write-Host "==> Deploying .env.production.1 as .env.1"
 scp ".env.production.1" "${Host_}:${RemoteDir}/.env.1"
 ssh $Host_ "sed -i 's/\r$//' $RemoteDir/.env.1"
+ssh $Host_ "chmod 600 $RemoteDir/.env.1"
 
 # .env.production.2 → .env.2
 Write-Host "==> Deploying .env.production.2 as .env.2"
 scp ".env.production.2" "${Host_}:${RemoteDir}/.env.2"
 ssh $Host_ "sed -i 's/\r$//' $RemoteDir/.env.2"
+ssh $Host_ "chmod 600 $RemoteDir/.env.2"
 
 # 이미지 빌드
 Write-Host "==> Building Docker image on remote"
