@@ -1,24 +1,37 @@
-.venv/
-__pycache__/
-logs/
-*.pyc
-*.pyo
-.env
-.env.example
-.env.production
-deploy.*
-.git*
+# 버전 관리
+.git
+.gitignore
 .gitattributes
+
+# 환경/배포
+.env*
+!.env.example
+deploy.*
+
+# 문서
 README.md
 LICENSE
-docker-compose.yml
-screenshots/
-tests/
-test_*.py
+
+# OS 시스템 파일
+.DS_Store
+._*
+Thumbs.db
+[Dd]esktop.ini
+*~
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# 프로젝트
+logs/
 *.session
 *.session-journal
+screenshots/
 *.tmp
 *.log
 telegram_mcp.egg-info/
 poetry.lock
+docker-compose.yml
 claude_desktop_config.json
