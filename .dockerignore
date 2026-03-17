@@ -1,37 +1,22 @@
-# 버전 관리
-.git
-.gitignore
-.gitattributes
-
-# 환경/배포
+# 빌드 컨텍스트 제외 — builder의 COPY . .에서 소스 파일 필요
 .env*
-!.env.example
+.git*
 deploy.*
-
-# 문서
+build.sh
+run.sh
 README.md
 LICENSE
-
-# OS 시스템 파일
-.DS_Store
-._*
-Thumbs.db
-[Dd]esktop.ini
-*~
-
-# Python
-.venv/
-__pycache__/
-*.pyc
-
-# 프로젝트
-logs/
-*.session
-*.session-journal
-screenshots/
-*.tmp
-*.log
-telegram_mcp.egg-info/
-poetry.lock
 docker-compose.yml
 claude_desktop_config.json
+logs/
+logs-*/
+screenshots/
+screenshots-*/
+*.session
+*.session-journal
+*.tmp
+*.log
+__pycache__/
+.venv/
+telegram_mcp.egg-info/
+test_*.py

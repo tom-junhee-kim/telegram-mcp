@@ -17,8 +17,7 @@ poetry.lock
 *.session-journal
 
 # 로그 (런타임 생성, 서버에만 존재)
-logs/*
-!logs/.gitkeep
+logs/
 
 # 임시 파일
 *.tmp
