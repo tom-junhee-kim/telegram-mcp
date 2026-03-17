@@ -5,7 +5,7 @@ $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $ScriptDir
 
-$Host_ = "DM300S3B-B33-jhcheong"
+$Host_ = "DM300S3B-B33"
 $RemoteDir = "~/telegram-mcp"
 
 # .env.production.1, .env.production.2 확인
@@ -72,6 +72,9 @@ Remove-Item -Recurse -Force $TempDir
 # CRLF→LF 변환
 Write-Host "==> Converting CRLF to LF on remote"
 ssh $Host_ "cd $RemoteDir && find . -type f \( -name '*.sh' -o -name '*.py' -o -name '*.conf' -o -name '*.cnf' -o -name '*.cf' -o -name '*.yaml' -o -name '*.yml' -o -name '*.toml' -o -name '*.json' -o -name '*.ini' -o -name '*.sql' -o -name '*.pem' -o -name 'Dockerfile' -o -name '.dockerignore' \) -exec sed -i 's/\r$//' {} +"
+
+# 스크립트 실행 권한 복원 (scp는 권한 미보존)
+ssh $Host_ "cd $RemoteDir && find . -name '*.sh' -exec chmod +x {} +"
 
 # .env.production.1 → .env.1
 Write-Host "==> Deploying .env.production.1 as .env.1"
