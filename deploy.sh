@@ -54,7 +54,7 @@ done
 
 # 로그/스크린샷 디렉토리 생성
 echo "==> Ensuring data directories"
-ssh "$HOST" "mkdir -p $REMOTE_DIR/logs-1 $REMOTE_DIR/logs-2 $REMOTE_DIR/screenshots-1 $REMOTE_DIR/screenshots-2"
+ssh "$HOST" "mkdir -p $REMOTE_DIR/logs-1 $REMOTE_DIR/logs-2 $REMOTE_DIR/screenshots-1 $REMOTE_DIR/screenshots-2 && chmod 755 $REMOTE_DIR/logs-1 $REMOTE_DIR/logs-2 $REMOTE_DIR/screenshots-1 $REMOTE_DIR/screenshots-2"
 
 # 이미지 빌드
 echo "==> Building telegram-mcp image"

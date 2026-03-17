@@ -86,8 +86,12 @@ Write-Host "==> Deploying .env.production.2 as .env.2"
 scp ".env.production.2" "${Host_}:${RemoteDir}/.env.2"
 ssh $Host_ "cd $RemoteDir && sed -i 's/\r$//' .env.2 && chmod 600 .env.2"
 
+# 데이터 디렉토리 생성
+Write-Host "==> Ensuring data directories"
+ssh $Host_ "mkdir -p $RemoteDir/logs-1 $RemoteDir/logs-2 $RemoteDir/screenshots-1 $RemoteDir/screenshots-2 && chmod 755 $RemoteDir/logs-1 $RemoteDir/logs-2 $RemoteDir/screenshots-1 $RemoteDir/screenshots-2"
+
 # 이미지 빌드
-Write-Host "==> Building Docker image on remote"
+Write-Host "==> Building telegram-mcp image"
 ssh $Host_ "cd $RemoteDir && bash build.sh"
 
 # 컨테이너 시작
