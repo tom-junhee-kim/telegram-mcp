@@ -24,9 +24,9 @@ ssh $Host_ "docker stop telegram-mcp-1 telegram-mcp-2 2>/dev/null; docker rm tel
 
 # --- 파일 동기화 (deploy.sh rsync --delete 대체) ---
 # 제외 대상 (deploy.sh --exclude와 동일)
-$ExcludeNames = @('deploy.sh', 'deploy.ps1', 'README.md', 'LICENSE', 'docker-compose.yml', 'poetry.lock', 'uv.lock', '__init__.py', 'claude_desktop_config.json', 'requirements.txt', 'mcp_errors.log')
+$ExcludeNames = @('deploy.sh', 'deploy.ps1', 'README.md', 'LICENSE', 'docker-compose.yml', 'poetry.lock', 'claude_desktop_config.json')
 $ExcludePatterns = @('.env*', '.git*', '*.session', '*.session-journal', '*.log', '*.tmp', 'test_*.py')
-$ExcludeDirs = @('.git', '.github', '.venv', '__pycache__', 'logs', 'logs-1', 'logs-2', 'screenshots', 'screenshots-1', 'screenshots-2', 'telegram_mcp.egg-info', 'tests')
+$ExcludeDirs = @('.git', '.venv', '__pycache__', 'logs', 'logs-1', 'logs-2', 'screenshots', 'screenshots-1', 'screenshots-2', 'telegram_mcp.egg-info')
 
 # 임시 디렉토리에 배포 대상만 복사
 $TempDir = Join-Path $env:TEMP "deploy-telegram-mcp"
