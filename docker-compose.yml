@@ -33,4 +33,4 @@ services:
       # Host directory must be readable/writable by uid 1000 (appuser):
       #   mkdir -p ./transcript_cache && chown 1000:1000 ./transcript_cache
       - ./transcript_cache:/app/data/transcripts
-    restart: unless-stopped
+    restart: on-failure

@@ -25,7 +25,7 @@ for i in "${INSTANCES[@]}"; do
   esac
   docker run -d \
     --name "telegram-mcp-$i" \
-    --restart unless-stopped \
+    --restart on-failure \
     --env-file "$DIR/.env.$i" \
     -e MCP_TRANSPORT="$transport" \
     -e MCP_HOST=0.0.0.0 \

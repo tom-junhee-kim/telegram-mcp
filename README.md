@@ -754,7 +754,7 @@ Run one long-lived container serving streamable HTTP, and point every MCP
 client at it (see [Transports](#transports) for client registration):
 
 ```bash
-docker run -d --name telegram-mcp --restart unless-stopped \
+docker run -d --name telegram-mcp --restart on-failure \
   --env-file .env \
   -e MCP_TRANSPORT=http \
   -e MCP_HOST=0.0.0.0 \
