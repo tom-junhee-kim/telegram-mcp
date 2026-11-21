@@ -8,6 +8,12 @@
 # - 이미지는 비루트 appuser(uid 1000)로 돌아 data-N 폴더는 1000 소유여야 한다(deploy.sh 가 맞춘다).
 # - alpine 이미지라 bash 가 없어 헬스체크는 python 으로 포트를 연다.
 set -euo pipefail
+# ===== 이 서비스는 k3s(shared-ai)로 이전했다(iD-127, 11-21) — 이 스크립트로 Docker 컨테이너를 만들지 않는다. =====
+# 옛 Docker 컨테이너와 k3s 파드가 함께 돌면 포트·세션·상태가 중복된다. 되돌림(파드 replicas 0 확인 뒤)에만 ALLOW_DOCKER_RUN=1 로 실행한다.
+if [ "${ALLOW_DOCKER_RUN:-}" != "1" ]; then
+  echo "ERROR: telegram-mcp 는 k3s(shared-ai)로 이전했다 — 이 스크립트는 Docker 컨테이너를 만든다. 배포는 deploy.sh(gitops 이미지 태그), 되돌림은 tools/k3s-ops/README.md 를 보라." >&2
+  exit 1
+fi
 DIR="$(cd "$(dirname "$0")" && pwd)"
 TAG="${1:-latest}"
 if [ $# -gt 1 ]; then
