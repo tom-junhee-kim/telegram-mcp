@@ -12,12 +12,13 @@ set -euo pipefail
 
 HOST="DM300S3B-B33"
 REMOTE_DIR="~/telegram-mcp"
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"   # -P: 워크스페이스 docker/ 심링크로 불러도 실체 경로(저장소 옆 폴더 기준)가 나온다
 TAG="${1:-latest}"
 REG="registry.codescent.biz"
-BUMP="${GITOPS_BUMP:-$HOME/Developer/codescent-claude-workspace/tools/gitops-image/bump.sh}"
+WS="${CS_WORKSPACE:-$(cd "$SCRIPT_DIR/.." && pwd)/codescent-claude-workspace}"   # 이 저장소 옆 폴더(Developer/codescent-claude-workspace) — $HOME/Developer 를 가정하지 않는다
+BUMP="${GITOPS_BUMP:-$WS/tools/gitops-image/bump.sh}"
 KCFG="${KUBECONFIG:-$HOME/.kube/cs-b450m.yaml}"
-[ -x "$BUMP" ] || { echo "ERROR: bump.sh 를 찾지 못했다($BUMP) — GITOPS_BUMP 로 경로를 준다." >&2; exit 1; }
+[ -x "$BUMP" ] || { echo "ERROR: bump.sh 를 찾지 못했다($BUMP) — CS_WORKSPACE(워크스페이스 폴더)나 GITOPS_BUMP(bump.sh 경로)로 준다." >&2; exit 1; }
 
 echo "==> Uploading source to $HOST:$REMOTE_DIR"
 rsync -a --delete \
